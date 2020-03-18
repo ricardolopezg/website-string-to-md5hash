@@ -1,41 +1,33 @@
 #!/usr/bin/env python3
 
 import sys
-import requests as r
+import requests
 from bs4 import BeautifulSoup
-import hashlib as h
-
-def submit_hash_to_form(hash):
-    print("submit")
-
-def md5_calc(string_content):
-    hash_calc = h.md5(string_content.encode('utf-8')).hexdigest()
-    return hash_calc
-
-def parse_for_string(url_content):
-    soup = BeautifulSoup(url_content, 'html.parser')
-    # print(soup.prettify())
-    string = soup.h3.get_text()
-    return string
-
-def get_url_content(main_url):
-    # sesh = r.Session()
-    # url_content = sesh.get(main_url).text
-    url_content = r.get(main_url).text
-    return url_content
+import hashlib
 
 def main():
+    # url to parse
     url = sys.argv[1]
-    content = get_url_content(url)
-    # print(content)
 
-    string_to_hash = parse_for_string(content)
-    print("String to hash: " + str(string_to_hash))
+    # create session to retrieve content
+    sesh = requests.Session()
+    url_content = sesh.get(url)
 
-    md5_hash = md5_calc(string_to_hash)
-    print("MD5 hash: " + str(md5_hash))
+    # parse through content for string
+    soup = BeautifulSoup(url_content.text, 'html.parser')
+    string = soup.h3.get_text()
 
-    submit_hash = submit_hash_to_form(md5_hash)
+    # convert string to md5 hash
+    hash_calc = hashlib.md5(string.encode('utf-8')).hexdigest()
+
+    # send POST request with hashed parameter
+    params={'hash' : hash_calc}
+    post_hash = sesh.post(f'{url}', params)
+
+    # parse html after POST request and print flag
+    result = BeautifulSoup(post_hash.text, 'html.parser')
+    result_flag = result.p.get_text()
+    print(result_flag)
 
 if __name__ == '__main__':
     main()
